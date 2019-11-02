@@ -35,6 +35,9 @@ packages:
 # forks / in-progress versions pinned to a git hash. For example:
 #
 # extra-deps:
+extra-deps:
+  - hindent-5.3.1@sha256:23dc3d423820a1de4a11f54eb87992f2c9fa1b686b2230bb06d1af46edc85c4b,3452
+  - stylish-haskell-0.9.4.3@sha256:98f60e087ee3e661220cd3e1cf77677d4cecd3b90d110f7ce6f36babb5c2f895,4953
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
