@@ -11,13 +11,13 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 module Main where
 
 import           Lib
 
 import           Control.Arrow
 import           Control.Monad
+import           Data.Decimal
 import           Data.HashMap.Lazy
 import           Data.Time.Calendar
 import qualified Data.Vector        as V
@@ -35,12 +35,12 @@ main = do
   trades <- parseTrades "goog.csv"
   let rates =
         join $
-        ((table >>= return . mLookup) >>= return . mapM) `ap`
+        (table >>= return . mapM . mLookup) `ap`
         (trades >>= return . fmap tradeDate)
   let dollars =
         trades >>= return . fmap (\p -> fmv p * (fromIntegral $ amount p))
   let pounds = return (V.zipWith (*)) `ap` rates `ap` dollars
   let total = pounds >>= return . (foldl (+) 0)
   case total of
-    Right x -> putStrLn $ show x
+    Right x -> putStrLn $ show $ roundTo 4 x
     Left x  -> putStrLn x
