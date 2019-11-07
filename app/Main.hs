@@ -20,27 +20,20 @@ import           Control.Monad
 import           Data.Decimal
 import           Data.HashMap.Lazy
 import           Data.Time.Calendar
+import           Data.Tuple
 import qualified Data.Vector        as V
-
-mLookup :: HashMap Day b -> Day -> Either String b
-mLookup h k =
-  case Data.HashMap.Lazy.lookup k h of
-    Just x  -> return x
-    Nothing -> fail $ "failed to lookup " ++ (show k)
 
 main :: IO ()
 main = do
   csvVec <- parseFX "eurofxref-hist.csv"
   let table = csvVec >>= return . usdToGbp
   trades <- parseTrades "goog.csv"
-  let rates =
-        join $
-        (table >>= return . mapM . mLookup) `ap`
-        (trades >>= return . fmap tradeDate)
-  let dollars =
-        trades >>= return . fmap (\p -> fmv p * (fromIntegral $ amount p))
-  let pounds = return (V.zipWith (*)) `ap` rates `ap` dollars
+  let pounds = join $ return getPoundValues `ap` table `ap` trades
   let total = pounds >>= return . (foldl (+) 0)
-  case total of
-    Right x -> putStrLn $ show $ roundTo 4 x
-    Left x  -> putStrLn x
+  let cnt = trades >>= return . (foldl (+) 0) . fmap amount
+  let totalcnt = return (,) `ap` total `ap` cnt
+  case totalcnt of
+    Right (v, n) ->
+      putStrLn $
+      (show n) ++ " shares" ++ " at " ++ (show $ roundTo 4 v) ++ " GBP"
+    Left x -> putStrLn $ "OHNO! " ++ x

@@ -21,6 +21,7 @@ module Lib
   , amount
   , fmv
   , date
+  , getPoundValues
   , gbp
   , usd
   , usdToGbp
@@ -121,3 +122,17 @@ parseTrades name = do
 usdToGbp :: (V.Vector FXRow) -> HashMap Day Decimal
 usdToGbp =
   foldl (\a p -> insert (date p) ((gbp p) / (usd p)) a) Data.HashMap.Lazy.empty
+
+mLookup :: HashMap Day b -> Day -> Either String b
+mLookup h k =
+  case Data.HashMap.Lazy.lookup k h of
+    Just x  -> return x
+    Nothing -> fail $ "failed to lookup " ++ (show k)
+
+getPoundValues ::
+     (HashMap Day Decimal) -> V.Vector Trade -> Either String (V.Vector Decimal)
+getPoundValues h t =
+  rates >>=
+  return . V.zipWith (*) (fmap (\p -> fmv p * (fromIntegral $ amount p)) t)
+  where
+    rates = mapM (mLookup h . tradeDate) t
