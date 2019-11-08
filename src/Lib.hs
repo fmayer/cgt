@@ -83,10 +83,7 @@ maybeParseAmericanDate text =
   parseTimeM True defaultTimeLocale "%-m/%-d/%Y" text
 
 maybeParseDate :: String -> Maybe Day
-maybeParseDate s =
-  case maybeParseISODate s of
-    Just d  -> Just d
-    Nothing -> maybeParseAmericanDate s
+maybeParseDate s = maybeParseISODate s A.<|> maybeParseAmericanDate s
 
 instance FromField Action where
   parseField "Deposit" = A.pure Buy
