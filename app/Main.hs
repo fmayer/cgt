@@ -15,13 +15,8 @@ module Main where
 
 import           Lib
 
-import           Control.Arrow
 import           Control.Monad
 import           Data.Decimal
-import           Data.HashMap.Lazy
-import           Data.Time.Calendar
-import           Data.Tuple
-import qualified Data.Vector        as V
 
 main :: IO ()
 main = do
