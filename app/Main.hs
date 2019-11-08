@@ -26,12 +26,12 @@ import qualified Data.Vector        as V
 main :: IO ()
 main = do
   csvVec <- parseFX "eurofxref-hist.csv"
-  let table = csvVec >>= return . usdToGbp
+  let table = usdToGbp <$> csvVec
   trades <- parseTrades "goog.csv"
-  let pounds = join $ return getPoundValues `ap` table `ap` trades
-  let total = pounds >>= return . (foldl (+) 0)
-  let cnt = trades >>= return . (foldl (+) 0) . fmap amount
-  let totalcnt = return (,) `ap` total `ap` cnt
+  let pounds = join $ getPoundValues <$> table <*> trades
+  let total = sum <$> pounds
+  let cnt = sum . fmap amount <$> trades
+  let totalcnt = (,) <$> total <*> cnt
   case totalcnt of
     Right (v, n) ->
       putStrLn $

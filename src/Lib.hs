@@ -129,7 +129,7 @@ mLookup h k =
 getPoundValues ::
      (HashMap Day Decimal) -> V.Vector Trade -> Either String (V.Vector Decimal)
 getPoundValues h t =
-  rates >>= return . V.zipWith (*) $
-  fmap (\p -> fmv p * (fromIntegral $ amount p)) t
+  rates >>=
+  return . V.zipWith (*) (fmap (\p -> fmv p * (fromIntegral $ amount p)) t)
   where
     rates = mapM (mLookup h . tradeDate) t
