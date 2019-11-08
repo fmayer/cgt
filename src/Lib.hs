@@ -75,16 +75,6 @@ instance FromNamedRecord Trade where
 instance Hashable Day where
   hashWithSalt s a = hashWithSalt s $ showGregorian a
 
-maybeParseISODate :: String -> Maybe Day
-maybeParseISODate text = parseTimeM True defaultTimeLocale "%Y-%-m-%-d" text
-
-maybeParseAmericanDate :: String -> Maybe Day
-maybeParseAmericanDate text =
-  parseTimeM True defaultTimeLocale "%-m/%-d/%Y" text
-
-maybeParseDate :: String -> Maybe Day
-maybeParseDate s = maybeParseISODate s A.<|> maybeParseAmericanDate s
-
 instance FromField Action where
   parseField "Deposit" = A.pure Buy
   parseField "Sell"    = A.pure Sell
@@ -101,6 +91,16 @@ instance FromField Day where
     case maybeParseDate . unpack . decodeUtf8 $ s of
       Just d  -> A.pure d
       Nothing -> A.empty
+
+maybeParseISODate :: String -> Maybe Day
+maybeParseISODate text = parseTimeM True defaultTimeLocale "%Y-%-m-%-d" text
+
+maybeParseAmericanDate :: String -> Maybe Day
+maybeParseAmericanDate text =
+  parseTimeM True defaultTimeLocale "%-m/%-d/%Y" text
+
+maybeParseDate :: String -> Maybe Day
+maybeParseDate s = maybeParseISODate s A.<|> maybeParseAmericanDate s
 
 parseFX :: String -> IO (Either String (V.Vector FXRow))
 parseFX name = do
