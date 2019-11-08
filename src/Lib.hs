@@ -127,7 +127,7 @@ mLookup h k =
     Nothing -> fail $ "failed to lookup " ++ (show k)
 
 getPoundValues ::
-     (HashMap Day Decimal) -> V.Vector Trade -> Either String (V.Vector Decimal)
+     HashMap Day Decimal -> V.Vector Trade -> Either String (V.Vector Decimal)
 getPoundValues h t =
   V.zipWith (*) (fmap (\p -> fmv p * (fromIntegral $ amount p)) t) <$> rates
   where
