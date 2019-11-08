@@ -11,7 +11,6 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -133,7 +132,7 @@ mLookup h k =
 getPoundValues ::
      (HashMap Day Decimal) -> V.Vector Trade -> Either String (V.Vector Decimal)
 getPoundValues h t =
-  rates >>=
-  return . V.zipWith (*) (fmap (\p -> fmv p * (fromIntegral $ amount p)) t)
+  rates >>= return . V.zipWith (*) $
+  fmap (\p -> fmv p * (fromIntegral $ amount p)) t
   where
     rates = mapM (mLookup h . tradeDate) t
