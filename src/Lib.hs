@@ -21,7 +21,7 @@ module Lib
   , amount
   , fmv
   , date
-  , getPoundValues
+  , getPoundTrades
   , gbp
   , usd
   , usdToGbp
@@ -41,6 +41,14 @@ import           Data.Time.Calendar
 import           Data.Time.Format
 import qualified Data.Vector          as V
 import           GHC.Generics         (Generic)
+
+data Holding = 
+  Holding
+    { total_amount :: !Int
+    , total_value :: !Decimal
+    }
+  deriving (Generic, Show)
+
 
 data FXRow =
   FXRow
@@ -63,6 +71,9 @@ data Trade =
     , fmv       :: !Decimal
     }
   deriving (Generic, Show)
+
+
+data GBPTrade = GBPTrade Decimal Trade
 
 instance FromNamedRecord FXRow where
   parseNamedRecord r = FXRow <$> r .: "Date" <*> r .: "GBP" <*> r .: "USD"
@@ -91,6 +102,9 @@ instance FromField Day where
     case maybeParseDate . unpack . decodeUtf8 $ s of
       Just d  -> A.pure d
       Nothing -> A.empty
+
+addBuy :: Holding -> GBPTrade -> Holding
+addBuy h (GBPTrade gbpfmv t) = Holding (total_amount h + amount t) (total_value h + gbpfmv * (fromIntegral $ amount t))
 
 maybeParseISODate :: String -> Maybe Day
 maybeParseISODate text = parseTimeM True defaultTimeLocale "%Y-%-m-%-d" text
@@ -126,9 +140,14 @@ mLookup h k =
     Just x  -> return x
     Nothing -> fail $ "failed to lookup " ++ (show k)
 
-getPoundValues ::
-     HashMap Day Decimal -> V.Vector Trade -> Either String (V.Vector Decimal)
-getPoundValues h t =
-  V.zipWith (*) (fmap (\p -> fmv p * (fromIntegral $ amount p)) t) <$> rates
+getPoundTrades ::
+     HashMap Day Decimal -> V.Vector Trade -> Either String (V.Vector GBPTrade)
+getPoundTrades h t = V.zipWith GBPTrade <$> pounds <*> pure t
   where
     rates = mapM (mLookup h . tradeDate) t
+    pounds = V.zipWith (*) (fmap fmv t) <$> rates
+
+-- handleTrade :: (Holding, [GBPTrade]) -> GBPTrade -> (Holding, [GBPTrade])
+-- handleTrade (h, []) x@(GBPTrade gbpfmv t) = case action t of
+--   Buy -> ((addBuy h x), ts)
+--   Sell -> (h, [x])
