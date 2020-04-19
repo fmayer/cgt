@@ -17,12 +17,14 @@ import           Lib
 
 import           Control.Monad
 import           Data.Decimal
+import           Data.Map
+import qualified Data.Vector
 
-main :: IO ()
-main = do
-  csvVec <- parseFX "eurofxref-hist.csv"
-  let table = usdToGbp <$> csvVec
-  trades <- parseTrades "goog.csv"
+groupBySymbol x =  fromListWith (++) [(Lib.symbol t, [t]) | t <- x]
+
+handleTrades table symbol t =  do
+  let sortedT = sortBy Lib.date t
+  let trades = pure $ Data.Vector.fromList t
   let pounds = join $ getPoundValues <$> table <*> trades
   let total = sum <$> pounds
   let cnt = sum . fmap amount <$> trades
@@ -30,5 +32,17 @@ main = do
   case totalcnt of
     Right (v, n) ->
       putStrLn $
-      (show n) ++ " shares" ++ " at " ++ (show $ roundTo 4 v) ++ " GBP"
+      (show n) ++ " " ++ symbol ++ " shares" ++ " at " ++ (show $ roundTo 4 v) ++ " GBP"
     Left x -> putStrLn $ "OHNO! " ++ x
+
+
+main :: IO ()
+main = do
+  csvVec <- parseFX "eurofxref-hist.csv"
+  let table = usdToGbp <$> csvVec
+  trades <- parseTrades "goog.csv"
+  let tradesBySymbol = groupBySymbol <$> (Data.Vector.toList <$> trades)
+  let ms = mapWithKey (handleTrades table) <$> tradesBySymbol
+  case sequence_ <$> (elems <$> ms) of
+    Right m -> m
+    Left x  -> putStrLn $ "OHNO! " ++ x

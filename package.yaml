@@ -30,6 +30,7 @@ dependencies:
 - unordered-containers
 - hashable
 - Decimal
+- containers
 
 library:
   source-dirs: src

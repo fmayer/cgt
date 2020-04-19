@@ -26,6 +26,7 @@ module Lib
   , usd
   , usdToGbp
   , tradeDate
+  , symbol
   ) where
 
 import qualified Control.Applicative  as A
@@ -57,7 +58,8 @@ data Action
 
 data Trade =
   Trade
-    { action    :: !Action
+    { symbol    :: !String
+    , action    :: !Action
     , tradeDate :: !Day
     , amount    :: !Int
     , fmv       :: !Decimal
@@ -69,7 +71,7 @@ instance FromNamedRecord FXRow where
 
 instance FromNamedRecord Trade where
   parseNamedRecord r =
-    Trade <$> r .: "Action" <*> r .: "Date" <*> r .: "Quantity" <*>
+    Trade <$> r .: "Symbol" <*> r .: "Action" <*> r .: "Date" <*> r .: "Quantity" <*>
     r .: "Vest FMV"
 
 instance Hashable Day where
