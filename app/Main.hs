@@ -17,13 +17,12 @@ import           Lib
 
 import           Control.Monad
 import           Data.Decimal
-import           Data.Map
+import           Data.HashMap.Lazy
 import qualified Data.Vector
 
 groupBySymbol x =  fromListWith (++) [(Lib.symbol t, [t]) | t <- x]
 
 handleTrades table symbol t =  do
-  let sortedT = sortBy Lib.date t
   let trades = pure $ Data.Vector.fromList t
   let pounds = join $ getPoundValues <$> table <*> trades
   let total = sum <$> pounds
