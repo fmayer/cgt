@@ -55,3 +55,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - cgt
+    - tasty
+    - tasty-th
+    - tasty-hunit

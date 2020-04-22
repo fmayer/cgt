@@ -27,6 +27,9 @@ module Lib
   , usdToGbp
   , tradeDate
   , symbol
+  , maybeParseAmericanDate
+  , maybeParseISODate
+  , groupBySymbol
   ) where
 
 import qualified Control.Applicative  as A
@@ -71,8 +74,8 @@ instance FromNamedRecord FXRow where
 
 instance FromNamedRecord Trade where
   parseNamedRecord r =
-    Trade <$> r .: "Symbol" <*> r .: "Action" <*> r .: "Date" <*> r .: "Quantity" <*>
-    r .: "Vest FMV"
+    Trade <$> r .: "Symbol" <*> r .: "Action" <*> r .: "Date" <*>
+    r .: "Quantity" <*> r .: "Vest FMV"
 
 instance Hashable Day where
   hashWithSalt s a = hashWithSalt s $ showGregorian a
@@ -93,6 +96,9 @@ instance FromField Day where
     case maybeParseDate . unpack . decodeUtf8 $ s of
       Just d  -> A.pure d
       Nothing -> A.empty
+
+groupBySymbol :: [Trade] -> HashMap String [Trade]
+groupBySymbol x =  fromListWith (++) [(Lib.symbol t, [t]) | t <- x]
 
 maybeParseISODate :: String -> Maybe Day
 maybeParseISODate text = parseTimeM True defaultTimeLocale "%Y-%-m-%-d" text
