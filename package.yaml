@@ -58,3 +58,5 @@ tests:
     - tasty
     - tasty-th
     - tasty-hunit
+    - tasty-quickcheck
+    - QuickCheck

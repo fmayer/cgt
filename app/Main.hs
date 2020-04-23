@@ -15,17 +15,21 @@ module Main where
 
 import           Lib
 
+import           Control.Arrow
 import           Control.Monad
 import           Data.Decimal
 import           Data.HashMap.Lazy
-import qualified Data.Vector
+import           Data.List
+import qualified Data.Vector       as V
 
-handleTrades table symbol t =  do
-  let trades = pure $ Data.Vector.fromList t
-  let pounds = join $ getPoundValues <$> table <*> trades
+
+getCostBasis fxTable symbol t =  do
+  let sortedT = sortOn (tradeDate &&& actionOrder . action) t
+  let trades = pure $ V.fromList t
+  let pounds = join $ getPoundValues <$> fxTable <*> trades
   let total = sum <$> pounds
-  let cnt = sum . fmap amount <$> trades
-  let totalcnt = (,) <$> total <*> cnt
+  let cnt = sum $ fmap amount $ t
+  let totalcnt = (,) <$> total <*> pure cnt
   case totalcnt of
     Right (v, n) ->
       putStrLn $
@@ -38,8 +42,8 @@ main = do
   csvVec <- parseFX "eurofxref-hist.csv"
   let table = usdToGbp <$> csvVec
   trades <- parseTrades "goog.csv"
-  let tradesBySymbol = groupBySymbol <$> (Data.Vector.toList <$> trades)
-  let ms = mapWithKey (handleTrades table) <$> tradesBySymbol
+  let tradesBySymbol = groupBySymbol <$> (V.toList <$> trades)
+  let ms = mapWithKey (getCostBasis table) <$> tradesBySymbol
   case sequence_ <$> (elems <$> ms) of
     Right m -> m
     Left x  -> putStrLn $ "OHNO! " ++ x
