@@ -20,21 +20,14 @@ import           Control.Monad
 import           Data.Decimal
 import           Data.HashMap.Lazy
 import           Data.List
+import           Data.Time.Calendar
 import qualified Data.Vector       as V
 
-
+getCostBasis :: HashMap Day Decimal -> String -> [Trade] -> Either String [CapitalGains]
 getCostBasis fxTable symbol t =  do
-  let sortedT = sortOn (tradeDate &&& actionOrder . action) t
-  let trades = pure $ V.fromList t
-  let pounds = join $ getPoundValues <$> fxTable <*> trades
-  let total = sum <$> pounds
-  let cnt = sum $ fmap amount $ t
-  let totalcnt = (,) <$> total <*> pure cnt
-  case totalcnt of
-    Right (v, n) ->
-      putStrLn $
-      (show n) ++ " " ++ symbol ++ " shares" ++ " at " ++ (show $ roundTo 4 v) ++ " GBP"
-    Left x -> putStrLn $ "OHNO! " ++ x
+  poundTrades <-  getPoundValues fxTable t
+  let sortedT = sortOn (tradeDate &&& actionOrder . action) poundTrades
+  pure $ handleTrades sortedT
 
 
 main :: IO ()
@@ -43,7 +36,8 @@ main = do
   let table = usdToGbp <$> csvVec
   trades <- parseTrades "goog.csv"
   let tradesBySymbol = groupBySymbol <$> (V.toList <$> trades)
-  let ms = mapWithKey (getCostBasis table) <$> tradesBySymbol
-  case sequence_ <$> (elems <$> ms) of
-    Right m -> m
+  let ms = mapWithKey <$> (getCostBasis <$> table) <*> tradesBySymbol
+  let msE = elems <$> ms
+  case sequence $ sequence $ msE of
+    Right m -> putStrLn $ show m
     Left x  -> putStrLn $ "OHNO! " ++ x

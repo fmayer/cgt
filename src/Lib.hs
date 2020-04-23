@@ -132,6 +132,7 @@ addCostBases (CostBasis s1 t1) (CostBasis s2 t2) = CostBasis (s1 + s2) (t1 + t2)
 
 takeFromCostBasis :: CostBasis -> Int -> (CostBasis, CostBasis)
 takeFromCostBasis c 0 = ((CostBasis 0 0), c)
+takeFromCostBasis c _ | shares c <= 0 = error "negative shares"
 takeFromCostBasis c n | n > shares c = error "removing nonexisting shares"
 takeFromCostBasis c n = (,) (CostBasis n splitPrice) (CostBasis (shares c - n) newPrice)
   where avgPrice = totalPrice c / (fromIntegral $ shares c)
@@ -164,12 +165,12 @@ maybeParseDate s = maybeParseISODate s A.<|> maybeParseAmericanDate s
 parseFX :: String -> IO (Either String (V.Vector FXRow))
 parseFX name = do
   csvData <- BL.readFile name
-  return $ fmap snd $ decodeByName csvData
+  return $ snd <$> decodeByName csvData
 
 parseTrades :: String -> IO (Either String (V.Vector Trade))
 parseTrades name = do
   csvData <- BL.readFile name
-  return $ fmap snd $ decodeByName csvData
+  return $ snd <$> decodeByName csvData
 
 usdToGbp :: (V.Vector FXRow) -> HashMap Day Decimal
 usdToGbp =
@@ -191,7 +192,7 @@ matchingFutureTrades d _ a@(t:ts) | tradeDate t > d = ([],a)
 matchingFutureTrades d n (t@Trade{action=Sell}:ts) =
   concatPair ([], [t]) $ matchingFutureTrades d n ts
 matchingFutureTrades d n (t@Trade{action=Buy}:ts) =
-  concatPair ([x], []) $ matchingFutureTrades d n (res ++ ts)
+  concatPair ([x], []) $ matchingFutureTrades d (n - amount x) (res ++ ts)
   where (x, res) = splitTrade t n
 
 getCapitalGains :: Trade -> CostBasis -> CapitalGains
@@ -213,9 +214,11 @@ handleTrades :: [Trade] -> [CapitalGains]
 handleTrades t = handleTradesSorted (CostBasis 0 0) sortedT
   where sortedT = sortOn (tradeDate &&& actionOrder . action) t
 
+multiplyFMV t n = t { fmv = fmv t * n}
+
 getPoundValues ::
-     HashMap Day Decimal -> V.Vector Trade -> Either String (V.Vector Decimal)
+     HashMap Day Decimal -> [Trade] -> Either String [Trade]
 getPoundValues h t =
-  V.zipWith (*) (fmap totalValue t) <$> rates
+  zipWith multiplyFMV t <$> rates
   where
     rates = mapM (mLookup h . tradeDate) t
