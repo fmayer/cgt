@@ -1,8 +1,10 @@
-# cgt
+# UK Capital Gains Tax Calculator
+
+**THIS IS NOT FINANCIAL ADVISE.**
 
 Go to [Schwab's transaction history](https://client.schwab.com/Apps/accounts/transactionhistory/#/).
 
-# EAC
+## Schwab EAC
 
 Select filters
 

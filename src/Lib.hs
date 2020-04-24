@@ -228,9 +228,13 @@ handleTradesSorted cb [] = []
 handleTradesSorted cb (t@Trade{action=Buy}:ts) = handleTradesSorted (addToCostBasis t cb) ts
 handleTradesSorted cb (t@Trade{action=Sell}:ts) = cg:handleTradesSorted newCB rest
   where maxFuture = addDays 30 $ tradeDate t
+        -- Find trades in the next 30 days that can match up with the sale.
         (matching, rest) = matchingFutureTrades maxFuture (amount t) ts
+        -- Add them up to form the costbasis for this trade.
         futureCB = Data.List.foldr addToCostBasis (CostBasis 0 0) matching
+        -- See if we've fully matched the trade with them.
         missing = (amount t) - (shares futureCB)
+        -- If not, take some from the holding.
         (takenCB, newCB) = takeFromCostBasis cb missing
         saleCB = addCostBases futureCB  takenCB
         cg = getCapitalGains t saleCB
