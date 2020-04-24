@@ -21,7 +21,7 @@ import           Data.Decimal
 import           Data.HashMap.Lazy
 import           Data.List
 import           Data.Time.Calendar
-import qualified Data.Vector       as V
+import qualified Data.Vector        as V
 
 getCostBasis :: HashMap Day Decimal -> String -> [Trade] -> Either String [CapitalGains]
 getCostBasis fxTable symbol t =  do

@@ -41,22 +41,24 @@ module Lib
   , handleTrades
   ) where
 
-import qualified Control.Applicative  as A
+import qualified Control.Applicative   as A
 import           Control.Arrow
 import           Control.Monad
-import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString       as BS
+import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString.Lazy  as BL
 import           Data.Csv
 import           Data.Decimal
 import           Data.Hashable
-import           Data.HashMap.Lazy    as HM
+import           Data.HashMap.Lazy     as HM
 import           Data.List
 import           Data.Maybe
-import           Data.Text            (Text, unpack)
+import           Data.Text             (Text, unpack)
 import           Data.Text.Encoding
 import           Data.Time.Calendar
 import           Data.Time.Format
-import qualified Data.Vector          as V
-import           GHC.Generics         (Generic)
+import qualified Data.Vector           as V
+import           GHC.Generics          (Generic)
 
 data FXRow =
   FXRow
@@ -98,41 +100,64 @@ data CapitalGains =
 instance FromNamedRecord FXRow where
   parseNamedRecord r = FXRow <$> r .: "Date" <*> r .: "GBP" <*> r .: "USD"
 
+dollarToDecimal :: Dollars -> Decimal
+dollarToDecimal (Dollars d) = d
+
 instance FromNamedRecord Trade where
   parseNamedRecord r =
     Trade <$> r .: "Symbol" <*> r .: "Action" <*> r .: "Date" <*>
-    r .: "Quantity" <*> r .: "Vest FMV"
+    r .: "Quantity" <*> (dollarToDecimal <$> r .: "Price")
 
 instance Hashable Day where
   hashWithSalt s a = hashWithSalt s $ showGregorian a
 
 instance FromField Action where
+  parseField "Buy" = A.pure Buy
   parseField "Deposit" = A.pure Buy
   parseField "Sell"    = A.pure Sell
-  parseField _         = A.empty
+  parseField s         = fail $ "invalid action: " ++ (unpack . decodeUtf8 $ s)
 
 instance FromField Decimal where
   parseField s =
-    case reads . unpack . decodeUtf8 $ s of
+    case reads decodedS of
       [(x, "")] -> A.pure x
-      _         -> A.empty
+      _         -> fail $ "invalid decimal: " ++ decodedS
+    where decodedS = unpack . decodeUtf8 $ s
 
 instance FromField Day where
   parseField s =
-    case maybeParseDate . unpack . decodeUtf8 $ s of
+    case maybeParseDate decodedS of
       Just d  -> A.pure d
-      Nothing -> A.empty
+      Nothing -> fail $ "invalid day: " ++ decodedS
+    where decodedS = unpack . decodeUtf8 $ s
 
+newtype Dollars = Dollars Decimal;
+
+instance FromField Dollars where
+  parseField s = do
+    case BS8.uncons s of
+      Just (c, rest) ->
+        if c /= '$' then
+          A.empty
+        else
+          case reads . unpack . decodeUtf8 $ BS8.filter ((/=) ',') rest of
+            [(x, "")] -> A.pure (Dollars x)
+            _         -> A.empty
+      _ -> A.empty
+
+
+totalValue :: Trade -> Decimal
 totalValue t = fromIntegral (amount t) * fmv t
 
 addToCostBasis :: Trade -> CostBasis -> CostBasis
 addToCostBasis t c = CostBasis (amount t + shares c) (totalValue t + totalPrice c)
 
+addCostBases :: CostBasis -> CostBasis -> CostBasis
 addCostBases (CostBasis s1 t1) (CostBasis s2 t2) = CostBasis (s1 + s2) (t1 + t2)
 
 takeFromCostBasis :: CostBasis -> Int -> (CostBasis, CostBasis)
 takeFromCostBasis c 0 = ((CostBasis 0 0), c)
-takeFromCostBasis c _ | shares c <= 0 = error "negative shares"
+takeFromCostBasis c _ | shares c <= 0 = error "non-positive shares"
 takeFromCostBasis c n | n > shares c = error "removing nonexisting shares"
 takeFromCostBasis c n = (,) (CostBasis n splitPrice) (CostBasis (shares c - n) newPrice)
   where avgPrice = totalPrice c / (fromIntegral $ shares c)
@@ -212,6 +237,8 @@ handleTradesSorted cb (t@Trade{action=Sell}:ts) = cg:handleTradesSorted newCB re
 
 handleTrades :: [Trade] -> [CapitalGains]
 handleTrades t = handleTradesSorted (CostBasis 0 0) sortedT
+  -- Sort by date, with sales always coming before buys. This way, we can
+  -- implement the same-day and the Bed and Breakfast rule in the same way.
   where sortedT = sortOn (tradeDate &&& actionOrder . action) t
 
 multiplyFMV t n = t { fmv = fmv t * n}
