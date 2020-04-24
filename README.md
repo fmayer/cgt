@@ -14,7 +14,7 @@ Export with legit JS
 $(".sch-caret-up").click()
 
 
-var data='"Txn Date","Action","Symbol","Description","Quanitity","Grant Date","Grant","Date","Price"\n';
+var data='"Txn Date","Action","Symbol","Description","Quantity","Grant Date","Grant","Date","Price"\n';
 var i = 0;
 var first = true;
 $(".data-row").each(function() {
