@@ -115,7 +115,7 @@ instance FromField Action where
   parseField "Buy" = A.pure Buy
   parseField "Deposit" = A.pure Buy
   parseField "Sell"    = A.pure Sell
-  parseField s         = fail $ "invalid action: " ++ (unpack . decodeUtf8 $ s)
+  parseField s         =  fail $ "invalid action: " ++ (unpack . decodeUtf8 $ s)
 
 instance FromField Decimal where
   parseField s =
@@ -137,12 +137,12 @@ instance FromField Dollars where
   parseField s = do
     case BS8.uncons s of
       Just (c, rest) ->
-        if c /= '$' then
-          A.empty
-        else
-          case reads . unpack . decodeUtf8 $ BS8.filter ((/=) ',') rest of
-            [(x, "")] -> A.pure (Dollars x)
-            _         -> A.empty
+        case c of
+          '$' ->
+            case reads . unpack . decodeUtf8 $ BS8.filter ((/=) ',') rest of
+              [(x, "")] -> A.pure (Dollars x)
+              _         -> A.empty
+          _ -> A.empty
       _ -> A.empty
 
 
@@ -192,10 +192,10 @@ parseFX name = do
   csvData <- BL.readFile name
   return $ snd <$> decodeByName csvData
 
-parseTrades :: String -> IO (Either String (V.Vector Trade))
+parseTrades :: String -> IO (Either String [Trade])
 parseTrades name = do
   csvData <- BL.readFile name
-  return $ snd <$> decodeByName csvData
+  return $ V.toList <$> (snd <$> decodeByName csvData)
 
 usdToGbp :: (V.Vector FXRow) -> HashMap Day Decimal
 usdToGbp =
@@ -205,7 +205,7 @@ mLookup :: HashMap Day b -> Day -> Either String b
 mLookup h k =
   case HM.lookup k h of
     Just x  -> return x
-    Nothing -> fail $ "failed to lookup " ++ (show k)
+    Nothing -> A.empty -- fail $ "failed to lookup " ++ (show k)
 
 concatPair :: ([a], [b]) -> ([a], [b]) -> ([a], [b])
 concatPair (x1, y1) (x2, y2) = ((x1 ++ x2), (y1 ++ y2))

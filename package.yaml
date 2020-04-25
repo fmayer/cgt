@@ -44,6 +44,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - cgt
+    - optparse-applicative
 
 tests:
   cgt-test:

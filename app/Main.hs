@@ -20,22 +20,40 @@ import           Control.Monad
 import           Data.Decimal
 import           Data.HashMap.Lazy
 import           Data.List
+import           Data.Semigroup      ((<>))
 import           Data.Time.Calendar
-import qualified Data.Vector        as V
+import qualified Data.Vector         as V
+import           Options.Applicative
 
 getCostBasis :: HashMap Day Decimal -> String -> [Trade] -> Either String [CapitalGains]
 getCostBasis fxTable symbol t =  do
   poundTrades <-  getPoundValues fxTable t
-  let sortedT = sortOn (tradeDate &&& actionOrder . action) poundTrades
+  let sortedT = sortOn (tradeDate &&& actionOrder . Lib.action) poundTrades
   pure $ handleTrades sortedT
 
+data Args = Args
+  { fxCSV     :: String
+  , tradeCSVs :: [String]
+  }
+
+args :: Parser Args
+args = Args
+  <$> strOption ( long "fx" <> metavar "FILE" <> Options.Applicative.action "file" )
+  <*> many (argument str (Options.Applicative.action "file"))
+
+opts :: ParserInfo Args
+opts = info (args <**> helper)
+  ( fullDesc
+  <> progDesc "Calculate capital gains tax"
+  <> header "cgt - a capital gains tax calculator" )
 
 main :: IO ()
 main = do
-  csvVec <- parseFX "eurofxref-hist.csv"
+  a <- execParser opts
+  csvVec <- parseFX $ fxCSV a
   let table = usdToGbp <$> csvVec
-  trades <- parseTrades "goog.csv"
-  let tradesBySymbol = groupBySymbol <$> (V.toList <$> trades)
+  trades <- sequence $ Data.List.map parseTrades (tradeCSVs a)
+  let tradesBySymbol = groupBySymbol <$> (concat <$> (sequence trades))
   let ms = mapWithKey <$> (getCostBasis <$> table) <*> tradesBySymbol
   let msE = elems <$> ms
   case sequence $ sequence $ msE of
