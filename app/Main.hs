@@ -47,6 +47,10 @@ opts = info (args <**> helper)
   <> progDesc "Calculate capital gains tax"
   <> header "cgt - a capital gains tax calculator" )
 
+showCG :: (String, Either String [CapitalGains]) -> IO ()
+showCG (symbol, Left err) = putStrLn $ "failed to calculate for " ++ symbol ++ ": " ++ err
+showCG (symbol, Right gains) = putStrLn $ symbol ++ ": " ++ (show gains)
+
 main :: IO ()
 main = do
   a <- execParser opts
@@ -55,7 +59,7 @@ main = do
   trades <- sequence $ Data.List.map parseTrades (tradeCSVs a)
   let tradesBySymbol = groupBySymbol <$> (concat <$> (sequence trades))
   let ms = mapWithKey <$> (getCostBasis <$> table) <*> tradesBySymbol
-  let msE = elems <$> ms
-  case sequence $ sequence $ msE of
-    Right m -> putStrLn $ show m
+  let msL = toList <$> ms
+  case msL of
+    Right m -> sequence_ $ Data.List.map showCG m
     Left x  -> putStrLn $ "OHNO! " ++ x
