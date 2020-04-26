@@ -249,6 +249,7 @@ handleTrades t = handleTradesSorted (CostBasis 0 0) sortedT
   -- implement the same-day and the Bed and Breakfast rule in the same way.
   where sortedT = sortOn (tradeDate &&& actionOrder . action) t
 
+multiplyFMV :: Trade -> Decimal -> Trade
 multiplyFMV t n = t { fmv = fmv t * n}
 
 getPoundValues ::
