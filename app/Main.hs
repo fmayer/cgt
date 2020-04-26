@@ -51,6 +51,12 @@ showCG :: (String, Either String [CapitalGains]) -> IO ()
 showCG (symbol, Left err) = putStrLn $ "failed to calculate for " ++ symbol ++ ": " ++ err
 showCG (symbol, Right gains) = putStrLn $ symbol ++ ": " ++ (show gains)
 
+groupByYear :: [CapitalGains] -> HashMap Integer Decimal
+groupByYear cg = fromListWith (+) [(getTaxYear $ cgDate t, gains t) | t <- cg]
+
+showByYear :: (Integer, Decimal) -> IO ()
+showByYear (y, gains) = putStrLn $ (show y) ++ ": " ++ (show $ roundTo 2 gains)
+
 main :: IO ()
 main = do
   a <- execParser opts
@@ -60,6 +66,8 @@ main = do
   let tradesBySymbol = groupBySymbol <$> (concat <$> (sequence trades))
   let ms = mapWithKey <$> (getCostBasis <$> table) <*> tradesBySymbol
   let msL = toList <$> ms
-  case msL of
-    Right m -> sequence_ $ Data.List.map showCG m
+  let cg = concat <$> (join $ (sequence <$> (Data.List.map snd <$> msL)))
+  let cgByYear = groupByYear <$> cg
+  case toList <$> cgByYear of
+    Right m -> sequence_ $ Data.List.map showByYear m
     Left x  -> putStrLn $ "OHNO! " ++ x

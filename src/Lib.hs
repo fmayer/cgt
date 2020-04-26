@@ -34,6 +34,7 @@ module Lib
   , Action (..)
   , CapitalGains (..)
   , handleTrades
+  , getTaxYear
   ) where
 
 import qualified Control.Applicative   as A
@@ -88,15 +89,13 @@ data CostBasis =
 data CapitalGains =
   CapitalGains
     { costBasis :: !CostBasis,
-      gains     :: !Decimal
+      gains     :: !Decimal,
+      cgDate :: !Day
     }
   deriving (Generic, Show, Eq)
 
 instance FromNamedRecord FXRow where
   parseNamedRecord r = FXRow <$> r .: "Date" <*> r .: "GBP" <*> r .: "USD"
-
-dollarToDecimal :: Dollars -> Decimal
-dollarToDecimal (Dollars d) = d
 
 instance FromNamedRecord Trade where
   parseNamedRecord r =
@@ -140,6 +139,16 @@ instance FromField Dollars where
           _ -> A.empty
       _ -> A.empty
 
+ -- UK tax year runs from Apr 6 to Apr 5.
+getTaxYear :: Day -> Integer
+getTaxYear d
+  | month < 4 || month == 4 && day < 6 = year - 1
+  | otherwise = year
+   where (year, month, day) = toGregorian d
+
+
+dollarToDecimal :: Dollars -> Decimal
+dollarToDecimal (Dollars d) = d
 
 totalValue :: Trade -> Decimal
 totalValue t = fromIntegral (amount t) * fmv t
@@ -216,7 +225,7 @@ matchingFutureTrades d n (t@Trade{action=Buy}:ts) =
   where (x, res) = splitTrade t n
 
 getCapitalGains :: Trade -> CostBasis -> CapitalGains
-getCapitalGains t cb = CapitalGains cb (totalValue t - totalPrice cb)
+getCapitalGains t cb = CapitalGains cb (totalValue t - totalPrice cb) (tradeDate t)
 
 handleTradesSorted :: CostBasis -> [Trade] -> [CapitalGains]
 handleTradesSorted cb [] = []
