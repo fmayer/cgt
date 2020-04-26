@@ -18,20 +18,15 @@
 module Lib
   ( parseFX
   , parseTrades
-  , amount
-  , fmv
   , date
   , getPoundValues
   , gbp
   , usd
   , usdToGbp
-  , tradeDate
-  , symbol
   , maybeParseAmericanDate
   , maybeParseISODate
   , groupBySymbol
   , actionOrder
-  , action
   , takeFromCostBasis
   , addCostBases
   , CostBasis (..)
