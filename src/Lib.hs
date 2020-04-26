@@ -94,6 +94,8 @@ data CapitalGains =
     }
   deriving (Generic, Show, Eq)
 
+newtype Dollars = Dollars Decimal;
+
 instance FromNamedRecord FXRow where
   parseNamedRecord r = FXRow <$> r .: "Date" <*> r .: "GBP" <*> r .: "USD"
 
@@ -125,8 +127,6 @@ instance FromField Day where
       Nothing -> fail $ "invalid day: " ++ decodedS
     where decodedS = unpack . decodeUtf8 $ s
 
-newtype Dollars = Dollars Decimal;
-
 instance FromField Dollars where
   parseField s = do
     case BS8.uncons s of
@@ -145,7 +145,6 @@ getTaxYear d
   | month < 4 || month == 4 && day < 6 = year - 1
   | otherwise = year
    where (year, month, day) = toGregorian d
-
 
 dollarToDecimal :: Dollars -> Decimal
 dollarToDecimal (Dollars d) = d
