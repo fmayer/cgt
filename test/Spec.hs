@@ -31,6 +31,8 @@ case_sameDayFull = [(CapitalGains (CostBasis 1 1000) 0 (tradeDate sampleBuy))] @
   handleTrades [sampleBuy {action = Sell}, sampleBuy]
 case_sameDayPartial = [(CapitalGains (CostBasis 2 1500) 500 (tradeDate sampleBuy))] @=?
   handleTrades [sampleEarlierBuy, sampleBuy {action = Sell, amount = 2}, sampleBuy]
+case_sameDayPartialFraction = [(CapitalGains (CostBasis 2 1750) 250 (tradeDate sampleBuy))] @=?
+  handleTrades [sampleEarlierBuy, sampleBuy {action = Sell, amount = 2}, sampleBuy { amount = 1.5 }]
 case_empty = handleTrades [] @=? []
 
 case_taxYearApr5 = 2019 @=? getTaxYear (fromGregorian 2020 4 5)
