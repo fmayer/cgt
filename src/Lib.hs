@@ -134,7 +134,7 @@ instance FromField Day where
       decodedS = unpack . decodeUtf8 $ s
 
 instance FromField Dollars where
-  parseField s = do
+  parseField s =
     case BS8.uncons s of
       Just (c, rest) ->
         case c of
