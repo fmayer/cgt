@@ -103,9 +103,11 @@ instance FromNamedRecord FXRow where
 
 instance FromNamedRecord Trade where
   parseNamedRecord r =
-    Trade <$> r .: "Symbol" <*> r .: "Action" <*> r .: "Date"
-      <*> r
-      .: "Quantity"
+    Trade
+      <$> r .: "Symbol"
+      <*> r .: "Action"
+      <*> r .: "Date"
+      <*> r .: "Quantity"
       <*> (dollarToDecimal <$> r .: "Price")
 
 instance Hashable Day where
