@@ -13,39 +13,43 @@
 -- limitations under the License.
 module Main where
 
-import           Lib
-
-import           Control.Arrow
-import           Control.Monad
-import           Data.Decimal
-import           Data.HashMap.Lazy
-import           Data.List
-import           Data.Semigroup      ((<>))
-import           Data.Time.Calendar
-import qualified Data.Vector         as V
-import           Options.Applicative
+import Control.Arrow
+import Control.Monad
+import Data.Decimal
+import Data.HashMap.Lazy
+import Data.List
+import Data.Semigroup ((<>))
+import Data.Time.Calendar
+import qualified Data.Vector as V
+import Lib
+import Options.Applicative
 
 getCostBasis :: HashMap Day Decimal -> String -> [Trade] -> Either String [CapitalGains]
-getCostBasis fxTable symbol t =  do
-  poundTrades <-  getPoundValues fxTable t
+getCostBasis fxTable symbol t = do
+  poundTrades <- getPoundValues fxTable t
   let sortedT = sortOn (tradeDate &&& actionOrder . Lib.action) poundTrades
   pure $ handleTrades sortedT
 
-data Args = Args
-  { fxCSV     :: String
-  , tradeCSVs :: [String]
-  }
+data Args
+  = Args
+      { fxCSV :: String,
+        tradeCSVs :: [String]
+      }
 
 args :: Parser Args
-args = Args
-  <$> strOption ( long "fx" <> metavar "FILE" <> Options.Applicative.action "file" )
-  <*> many (argument str (Options.Applicative.action "file"))
+args =
+  Args
+    <$> strOption (long "fx" <> metavar "FILE" <> Options.Applicative.action "file")
+    <*> many (argument str (Options.Applicative.action "file"))
 
 opts :: ParserInfo Args
-opts = info (args <**> helper)
-  ( fullDesc
-  <> progDesc "Calculate capital gains tax"
-  <> header "cgt - a capital gains tax calculator" )
+opts =
+  info
+    (args <**> helper)
+    ( fullDesc
+        <> progDesc "Calculate capital gains tax"
+        <> header "cgt - a capital gains tax calculator"
+    )
 
 showCG :: (String, Either String [CapitalGains]) -> IO ()
 showCG (symbol, Left err) = putStrLn $ "failed to calculate for " ++ symbol ++ ": " ++ err
@@ -70,4 +74,4 @@ main = do
   let cgByYear = groupByYear <$> cg
   case toList <$> cgByYear of
     Right m -> sequence_ $ Data.List.map showByYear m
-    Left x  -> putStrLn $ "OHNO! " ++ x
+    Left x -> putStrLn $ "OHNO! " ++ x
