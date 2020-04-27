@@ -74,14 +74,14 @@ data Trade =
     { symbol    :: !String
     , action    :: !Action
     , tradeDate :: !Day
-    , amount    :: !Int
+    , amount    :: !Decimal
     , fmv       :: !Decimal
     }
   deriving (Generic, Show)
 
 data CostBasis =
   CostBasis
-    { shares     :: !Int
+    { shares     :: !Decimal
     , totalPrice :: !Decimal
     }
   deriving (Generic, Show, Eq)
@@ -150,7 +150,7 @@ dollarToDecimal :: Dollars -> Decimal
 dollarToDecimal (Dollars d) = d
 
 totalValue :: Trade -> Decimal
-totalValue t = fromIntegral (amount t) * fmv t
+totalValue t = (amount t) * fmv t
 
 addToCostBasis :: Trade -> CostBasis -> CostBasis
 addToCostBasis t c = CostBasis (amount t + shares c) (totalValue t + totalPrice c)
@@ -158,16 +158,16 @@ addToCostBasis t c = CostBasis (amount t + shares c) (totalValue t + totalPrice 
 addCostBases :: CostBasis -> CostBasis -> CostBasis
 addCostBases (CostBasis s1 t1) (CostBasis s2 t2) = CostBasis (s1 + s2) (t1 + t2)
 
-takeFromCostBasis :: CostBasis -> Int -> (CostBasis, CostBasis)
+takeFromCostBasis :: CostBasis -> Decimal -> (CostBasis, CostBasis)
 takeFromCostBasis c 0 = ((CostBasis 0 0), c)
 takeFromCostBasis c _ | shares c <= 0 = error "non-positive shares"
 takeFromCostBasis c n | n > shares c = error "removing nonexisting shares"
 takeFromCostBasis c n = (,) (CostBasis n splitPrice) (CostBasis (shares c - n) newPrice)
-  where avgPrice = totalPrice c / (fromIntegral $ shares c)
-        splitPrice = fromIntegral n * avgPrice
+  where avgPrice = totalPrice c / (shares c)
+        splitPrice = n * avgPrice
         newPrice = totalPrice c - splitPrice
 
-splitTrade :: Trade -> Int -> (Trade, [Trade])
+splitTrade :: Trade -> Decimal -> (Trade, [Trade])
 splitTrade t n
   | amount t < n = (t, [])
   | otherwise = (t { amount = n}, [t { amount = m}])
@@ -213,7 +213,7 @@ mLookup h k =
 concatPair :: ([a], [b]) -> ([a], [b]) -> ([a], [b])
 concatPair (x1, y1) (x2, y2) = ((x1 ++ x2), (y1 ++ y2))
 
-matchingFutureTrades :: Day -> Int -> [Trade] -> ([Trade], [Trade])
+matchingFutureTrades :: Day -> Decimal -> [Trade] -> ([Trade], [Trade])
 matchingFutureTrades _ _ [] = ([], [])
 matchingFutureTrades _ 0 ts = ([], ts)
 matchingFutureTrades d _ a@(t:ts) | tradeDate t > d = ([],a)
