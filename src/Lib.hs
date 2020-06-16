@@ -219,7 +219,7 @@ mLookup :: HashMap Day b -> Day -> Either String b
 mLookup h k =
   case HM.lookup k h of
     Just x -> return x
-    Nothing -> A.empty -- fail $ "failed to lookup " ++ (show k)
+    Nothing -> Left $ "failed to lookup " ++ (show k)
 
 concatPair :: ([a], [b]) -> ([a], [b]) -> ([a], [b])
 concatPair (x1, y1) (x2, y2) = ((x1 ++ x2), (y1 ++ y2))
