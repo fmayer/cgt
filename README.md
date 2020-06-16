@@ -6,11 +6,19 @@ Get the [eurofxref-hist.zip](https://www.ecb.europa.eu/stats/eurofxref/eurofxref
 
 Go to [Schwab's transaction history](https://client.schwab.com/Apps/accounts/transactionhistory/#/).
 
+## Schwab Main Account
+
+Select filters
+
+![](schwab-filters-main.png)
+
+Remove first line ("Transactions for account ...") from CSV obtained by clicking "Export".`
+
 ## Schwab EAC
 
 Select filters
 
-![](schwab-filters.png)
+![](schwab-filters-eac.png)
 
 Export with legit JS
 
@@ -37,4 +45,11 @@ $(".data-row").each(function() {
   }
   i++;
 })
+```
+
+
+## Run CGT
+
+```
+stack run -- --fx eurofxref-hist.csv eac.csv main.csv
 ```
